@@ -1,71 +1,88 @@
+import Task from "../model/task.model.js";
 
-
-export async function getalltasks(_, res) {
-    try {
-        const notes = await Note.find()
-        res.status(200).json(notes);
-    } catch (error) {
-        console.log("Error in getallnotes",error);
-        res.status(500).json({message: "Internal server error"});
-    }
+// GET all tasks for the logged-in user
+export async function getalltasks(req, res) {
+  try {
+    const tasks = await Task.find({ user: req.user._id });
+    res.status(200).json(tasks);
+  } catch (error) {
+    console.log("Error in getalltasks", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
 
-export async function createalltasks(req,res) {
-    try {
-        const { title, content} = req.body;
-        const newnote = new Note({title , content});
+// CREATE task for logged-in user
+export async function createalltasks(req, res) {
+  try {
+    const { title, content } = req.body;
 
-        const savednote =  await newnote.save();
-        res.status(201).json(savednote);
+    const newTask = new Task({
+      title,
+      content,
+      user: req.user._id, // Link task to the logged-in user
+    });
 
-       
-    }catch (error) {
-        console.log("Error in createallnotes",error);
-        res.status(500).json({message: "Internal server error"});
-    }
+    const savedTask = await newTask.save();
+    res.status(201).json(savedTask);
+  } catch (error) {
+    console.log("Error in createalltasks", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
 
-export async function updatealltasks(req,res) {
-    try {
-        const deletenote = await Note.findByIdAndDelete(req.params.id);
-        if (!deletenote) return res.status(404).json({message: "NOTES ARE NOT FOUND"});
-            res.status(201).json({message: "Notes are deleted Successfully"});
+// DELETE a task (only if it belongs to logged-in user)
+export async function updatealltasks(req, res) {
+  try {
+    const deletedTask = await Task.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id,
+    });
 
-    }catch (error) {
-        console.log("Error in deleteallnotes",error);
-        res.status(500).json({message: "Internal server error"});
-    }
+    if (!deletedTask)
+      return res.status(404).json({ message: "Task not found or unauthorized" });
+
+    res.status(200).json({ message: "Task deleted successfully" });
+  } catch (error) {
+    console.log("Error in updatealltasks", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
 
+// UPDATE a task (only if it belongs to logged-in user)
 export async function deletealltasks(req, res) {
   try {
     const { title, content } = req.body;
-    const Updatenote = await Note.findByIdAndUpdate(
-      req.params.id,
+
+    const updatedTask = await Task.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
       { title, content },
       { new: true }
     );
 
-    if (!Updatenote) {
-      return res.status(404).json({ message: "NOTES ARE NOT FOUND" });
-    }
+    if (!updatedTask)
+      return res.status(404).json({ message: "Task not found or unauthorized" });
 
-    res.status(200).json(Updatenote); // ✅ return the updated note object
+    res.status(200).json(updatedTask);
   } catch (error) {
-    console.log("Error in Updateallnotes", error);
+    console.log("Error in deletealltasks", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }
+
+// GET a specific task (only if it belongs to logged-in user)
 export async function gettasksbyid(req, res) {
   try {
-    const note = await Note.findById(req.params.id);
-    if (!note) {
-      return res.status(404).json({ message: "Note not found" });
-    }
-    res.status(200).json(note);
+    const task = await Task.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+
+    if (!task)
+      return res.status(404).json({ message: "Task not found or unauthorized" });
+
+    res.status(200).json(task);
   } catch (error) {
-    console.log("Error in getNoteById", error);
+    console.log("Error in gettasksbyid", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }
-
